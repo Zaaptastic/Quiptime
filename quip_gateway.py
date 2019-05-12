@@ -9,3 +9,8 @@ print(dir(client))
 
 def print_date_time():
     print(time.strftime("%A, %d. %B %Y %I:%M:%S %p"))
+
+def get_thread(suffix):
+	resp = client.get_thread(suffix)
+	print(resp)
+	return resp["thread"]["id"]
