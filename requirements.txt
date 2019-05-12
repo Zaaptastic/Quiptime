@@ -9,6 +9,7 @@ boto3==1.9.146
 botocore==1.12.146
 bs4==0.0.1
 certifi==2018.1.18
+cffi==1.12.3
 chardet==3.0.4
 click==6.7
 cloud-init==18.2
@@ -17,7 +18,7 @@ colorama==0.3.7
 command-not-found==0.3
 configobj==5.0.6
 constantly==15.1.0
-cryptography==2.1.4
+cryptography==2.3
 distro-info==0.18
 docutils==0.14
 Flask==1.0.2
@@ -28,10 +29,10 @@ hyperlink==17.3.1
 idna==2.6
 incremental==16.10.1
 itsdangerous==1.1.0
-Jinja2==2.10
+Jinja2==2.10.1
 jmespath==0.9.4
-jsonpatch==1.16
-jsonpointer==1.10
+jsonpatch==1.23
+jsonpointer==2.0
 jsonschema==2.6.0
 keyring==10.6.0
 keyrings.alt==3.0
@@ -44,6 +45,7 @@ PAM==0.4.2
 Plim==0.9.12
 pyasn1==0.4.2
 pyasn1-modules==0.2.1
+pycparser==2.19
 pycrypto==2.6.1
 PyExecJS==1.5.1
 pygobject==3.26.1
@@ -56,8 +58,8 @@ python-dateutil==1.5
 python-debian==0.1.32
 pytz==2019.1
 pyxdg==0.25
-PyYAML==3.12
-requests==2.18.4
+PyYAML==4.2b1
+requests==2.20.0
 requests-unixsocket==0.1.5
 s3transfer==0.2.0
 SecretStorage==2.3.1
@@ -72,6 +74,6 @@ Twisted==17.9.0
 tzlocal==1.5.1
 ufw==0.35
 unattended-upgrades==0.1
-urllib3==1.22
+urllib3==1.24.2
 Werkzeug==0.15.2
 zope.interface==4.3.2
