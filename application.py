@@ -10,6 +10,7 @@ import atexit
 import quip_gateway
 import quip
 import datetime
+import os
 
 app = Flask(__name__)
 
@@ -52,9 +53,13 @@ def process_reminder(reminder, thread_id, current_time):
 	else:
 		print("Time (or past time) to trigger: {reminder_id=" + reminder_id + ", time=" + time.strftime("%Y-%m-%d %H:%M:%S") + "}")
 		quip_gateway.toggle_checkmark(thread_id, reminder_id, reminder)
+		quip_gateway.new_message(thread_id, text)
 
 scheduler = BackgroundScheduler(timezone="EST") # TODO: Don't do this for the timezone
-scheduler.add_job(func=fetch_item_updates, args=["fFeAAABnQCd"], trigger="interval", seconds=3)
+scheduler.add_job(func=fetch_item_updates, 
+	args=["fFeAAABnQCd"],
+	trigger="interval", 
+	seconds=int(os.environ.get("QUIPTIME_HEARTBEAT_INTERVAL", "60")))
 scheduler.start()
 
 # Shut down the scheduler when exiting the app

@@ -30,3 +30,6 @@ def replace_document_section(thread_id, section_id, item):
 		operation = quip.QuipClient.REPLACE_SECTION, 
 		format = "html",
 		section_id = section_id)
+
+def new_message(thread_id, content):
+	client.new_message(thread_id, content)
