@@ -31,7 +31,8 @@ def get_thread():
 
 def fetch_item_updates(thread_id):
 	current_time = datetime.datetime.now(est_timezone)
-	print(current_time)
+	print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+	print("Beginning new log entry: " + current_time.strftime("%Y-%m-%d %H:%M:%S"))
 
 	# First, fetch all Reminders from the Document
 	html = quip_gateway.get_document_html(thread_id)
@@ -46,7 +47,7 @@ def process_reminder(reminder, thread_id, current_time):
 	reminder_id = reminder['id']
 	reminder_class = reminder['class']
 	if ('checked' in reminder_class):
-		print("Skipping ReminderId{" + reminder_id + "}")
+		print("Skipping completed (checked) ReminderId{" + reminder_id + "}")
 		return
 
 	# Locate the text in the Reminder describing the time in which it should be triggered.
