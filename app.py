@@ -3,6 +3,7 @@ from flask import request
 from flask import render_template
 from apscheduler.schedulers.background import BackgroundScheduler
 from dateutil import parser
+from dateutil import tz
 from bs4 import BeautifulSoup
 from pytz import timezone
 
@@ -15,11 +16,12 @@ import os
 import aws_gateway
 
 app = Flask(__name__)
-tz = timezone('EST')
+est_timezone = tz.gettz('US/Eastern')
+tzinfos = {"EST": tz.gettz('US/Eastern')}
 
 @app.route('/')
 def ping():
-    return 'Server is running'
+    return 'Server is running '
 
 @app.route('/get_thread')
 def get_thread():
@@ -28,7 +30,7 @@ def get_thread():
 	return render_template('get_thread.html', threadId=threadId)
 
 def fetch_item_updates(thread_id):
-	current_time = datetime.datetime.now(tz)
+	current_time = datetime.datetime.now(est_timezone)
 	print(current_time)
 
 	# First, fetch all Reminders from the Document
@@ -49,7 +51,7 @@ def process_reminder(reminder, thread_id, current_time):
 
 	# Locate the text in the Reminder describing the time in which it should be triggered.
 	text = reminder.text
-	time = parser.parse(text.split('@')[1])
+	time = parser.parse(text.split('@')[1] + " EST", tzinfos = tzinfos)
 	print(time)
 	if (time > current_time):
 		print("Not yet time to trigger: {reminder_id=" + reminder_id + ", time=" + time.strftime("%Y-%m-%d %H:%M:%S") + "}")
