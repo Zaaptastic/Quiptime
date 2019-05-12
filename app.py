@@ -16,7 +16,6 @@ import os
 import aws_gateway
 
 app = Flask(__name__)
-app.run(use_reloader=False)
 
 est_timezone = tz.gettz('US/Eastern')
 tzinfos = {"EST": tz.gettz('US/Eastern')}
@@ -70,12 +69,13 @@ def process_reminder(reminder, thread_id, current_time):
 			quip_gateway.new_message(thread_id, text)
 
 # Set up the scheduler 
-scheduler = BackgroundScheduler(timezone="EST") # TODO: Don't do this for the timezone
-scheduler.add_job(func=fetch_item_updates, 
-	args=["fFeAAABnQCd"], # TODO: Put this somewhere else
-	trigger="interval", 
-	seconds=int(os.environ.get("QUIPTIME_HEARTBEAT_INTERVAL", "60")))
-scheduler.start()
+if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+	scheduler = BackgroundScheduler(timezone="EST") # TODO: Don't do this for the timezone
+	scheduler.add_job(func=fetch_item_updates, 
+		args=["fFeAAABnQCd"], # TODO: Put this somewhere else
+		trigger="interval", 
+		seconds=int(os.environ.get("QUIPTIME_HEARTBEAT_INTERVAL", "60")))
+	scheduler.start()
 
 # Shut down the scheduler when exiting the app
 atexit.register(lambda: scheduler.shutdown())
