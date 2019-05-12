@@ -11,6 +11,7 @@ import quip_gateway
 import quip
 import datetime
 import os
+import aws_gateway
 
 app = Flask(__name__)
 
@@ -52,12 +53,19 @@ def process_reminder(reminder, thread_id, current_time):
 		print("Not yet time to trigger: {reminder_id=" + reminder_id + ", time=" + time.strftime("%Y-%m-%d %H:%M:%S") + "}")
 	else:
 		print("Time (or past time) to trigger: {reminder_id=" + reminder_id + ", time=" + time.strftime("%Y-%m-%d %H:%M:%S") + "}")
-		quip_gateway.toggle_checkmark(thread_id, reminder_id, reminder)
-		quip_gateway.new_message(thread_id, text)
+		
+		sns_response = aws_gateway.publish_message_to_sns(text)
 
+		# If the SNS message was unsuccessful, we want to retry, so we can't check off the checkbox
+		if (sns_response['ResponseMetadata']['HTTPStatusCode'] == 200):
+			# TODO: Find a way to cap retries
+			quip_gateway.toggle_checkmark(thread_id, reminder_id, reminder)
+			quip_gateway.new_message(thread_id, text)
+
+# Set up the scheduler 
 scheduler = BackgroundScheduler(timezone="EST") # TODO: Don't do this for the timezone
 scheduler.add_job(func=fetch_item_updates, 
-	args=["fFeAAABnQCd"],
+	args=["fFeAAABnQCd"], # TODO: Put this somewhere else
 	trigger="interval", 
 	seconds=int(os.environ.get("QUIPTIME_HEARTBEAT_INTERVAL", "60")))
 scheduler.start()

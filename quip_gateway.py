@@ -5,7 +5,8 @@ client = quip.QuipClient(
 	access_token=os.environ.get("QUIP_API_KEY", "InvalidKey"),
     base_url="https://platform.quip.com")
 
-print(dir(client))
+# Fetches all attributes of client, useful for debugging
+# print(dir(client))
 
 def get_thread(suffix):
 	# TODO: Make this handle URLs as well by parsing out the junk
