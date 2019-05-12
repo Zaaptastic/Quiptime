@@ -11,7 +11,7 @@ MarkupSafe==1.0
 oauthlib==2.0.6
 pycparser==2.19
 pyOpenSSL==17.5.0
-python-dateutil==1.5
+python-dateutil==2.8.0
 requests==2.20.0
 requests-unixsocket==0.1.5
 s3transfer==0.2.0
