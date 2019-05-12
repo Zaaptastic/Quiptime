@@ -4,6 +4,7 @@ from flask import render_template
 from apscheduler.schedulers.background import BackgroundScheduler
 from dateutil import parser
 from bs4 import BeautifulSoup
+from pytz import timezone
 
 import time
 import atexit
@@ -14,6 +15,7 @@ import os
 import aws_gateway
 
 app = Flask(__name__)
+tz = timezone('EST')
 
 @app.route('/')
 def ping():
@@ -26,7 +28,7 @@ def get_thread():
 	return render_template('get_thread.html', threadId=threadId)
 
 def fetch_item_updates(thread_id):
-	current_time = datetime.datetime.now()
+	current_time = datetime.datetime.now(tz)
 	print(current_time)
 
 	# First, fetch all Reminders from the Document
