@@ -1,8 +1,9 @@
 import time
 import quip
+import os
 
 client = quip.QuipClient(
-	access_token="R0NMQU1BWDBMcm0=|1589142576|pmuLMXmBBL+biWIwMNxApoqtXSAamR1GGg9MD6QNCAo=",
+	access_token=os.environ.get("QUIP_API_KEY", "InvalidKey"),
     base_url="https://platform.quip.com")
 
 print(dir(client))
