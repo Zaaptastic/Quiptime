@@ -4,6 +4,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import time
 import atexit
 import quip_gateway
+import quip
 
 app = Flask(__name__)
 
