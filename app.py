@@ -67,7 +67,9 @@ def add_thread(thread_id_to_add, submitted_password):
 		return render_template('get_thread_id.html', threadId=thread_id_to_add)
 
 def delete_thread(thread_id_to_delete, submitted_password):
-	if add_thread_password == request.form['password']:
+	if thread_id_to_delete not in threads_list:
+		return render_template('get_threads.html', threads_list=threads_list)		
+	elif add_thread_password == request.form['password']:
 		print("Deleting thread_id={" + thread_id_to_delete + "} to Tracked Threads")
 		threads_list.remove(thread_id_to_delete)
 		aws_gateway.upload_threads_list(threads_list)
