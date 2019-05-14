@@ -1,7 +1,16 @@
 <title>List of Actively Tracked Threads</title>
 
+<form method="POST"> 
+
 <ul>
 {% for thread in threads_list %}
-  <li><a href="https://quip.com/"{{thread}}>{{thread}}</a></li>
+  <textarea name="password">Enter Password...</textarea>
+  
+  <li>
+  	<a href="https://quip.com/"{{thread}}>{{thread}}</a> 
+  	<button type="submit" name="submit" value="{{thread}}">Delete</button>
+  </li>
 {% endfor %}
 </ul>
+
+</form>
