@@ -1,6 +1,7 @@
 from flask import Flask
 from flask import request
 from flask import render_template
+from flask import redirect, url_for
 from apscheduler.schedulers.background import BackgroundScheduler
 from dateutil import parser
 from dateutil import tz
@@ -19,16 +20,33 @@ app = Flask(__name__)
 
 est_timezone = tz.gettz('US/Eastern')
 tzinfos = {"EST": tz.gettz('US/Eastern')}
+add_thread_password = os.environ.get("ADD_THREAD_PASSWORD")
 
 @app.route('/')
 def ping():
     return 'Server is running '
 
-@app.route('/get_thread')
-def get_thread():
+@app.route('/get_thread_id')
+def get_thread_id():
 	suffix = request.args.get('suffix')
 	threadId = quip_gateway.get_thread(suffix)
-	return render_template('get_thread.html', threadId=threadId)
+	return render_template('get_thread_id.html', threadId=threadId)
+
+@app.route('/get_thread_id', methods=["POST"])
+def add_thread():
+	thread_id_to_add = request.form['submit']
+	threads_list.append(thread_id_to_add)
+	aws_gateway.upload_threads_list(threads_list)
+	if add_thread_password == request.form['password']:
+		print("Adding thread_id={" + thread_id_to_add + "} to Tracked Threads")
+		return redirect(url_for('get_threads'))
+	else:
+		print("Authentication Failed while adding thread_id={" + thread_id_to_add + "} to Tracked Threads")
+		return render_template('get_thread_id.html', threadId=thread_id_to_add)
+
+@app.route('/get_threads')
+def get_threads():
+	return render_template('get_threads.html', threads_list=threads_list)
 
 def fetch_item_updates(thread_ids):
 	current_time = datetime.datetime.now(est_timezone)
