@@ -33,25 +33,40 @@ def get_thread_id():
 	return render_template('get_thread_id.html', threadId=threadId)
 
 @app.route('/get_thread_id', methods=["POST"])
-def add_thread():
+def get_thread_id_add():
 	thread_id_to_add = request.form['submit']
-	threads_list.append(thread_id_to_add)
-	aws_gateway.upload_threads_list(threads_list)
-
-	if add_thread_password == request.form['password']:
-		print("Adding thread_id={" + thread_id_to_add + "} to Tracked Threads")
-		return redirect(url_for('get_threads'))
-	else:
-		print("Authentication Failed while adding thread_id={" + thread_id_to_add + "} to Tracked Threads")
-		return render_template('get_thread_id.html', threadId=thread_id_to_add)
+	submitted_password = request.form['password']
+	
+	return add_thread(thread_id_to_add, submitted_password)
 
 @app.route('/get_threads')
 def get_threads():
 	return render_template('get_threads.html', threads_list=threads_list)
 
 @app.route('/get_threads', methods=["POST"])
-def delete_thread():
+def get_threads_edit():
 	thread_id_to_delete = request.form['submit']
+	submitted_password = request.form['password']
+
+	if thread_id_to_delete == "get_threads_add":
+		# Instead of deleting, find a thread_id to add
+		thread_id_to_add = request.form['thread_id_to_add']
+		return add_thread(thread_id_to_add, submitted_password)
+	else:
+		return delete_thread(thread_id_to_delete, submitted_password)
+
+def add_thread(thread_id_to_add, submitted_password):
+	threads_list.append(thread_id_to_add)
+	aws_gateway.upload_threads_list(threads_list)
+
+	if add_thread_password == submitted_password:
+		print("Adding thread_id={" + thread_id_to_add + "} to Tracked Threads")
+		return redirect(url_for('get_threads'))
+	else:
+		print("Authentication Failed while adding thread_id={" + thread_id_to_add + "} to Tracked Threads")
+		return render_template('get_thread_id.html', threadId=thread_id_to_add)
+
+def delete_thread(thread_id_to_delete, submitted_password):
 	if add_thread_password == request.form['password']:
 		print("Deleting thread_id={" + thread_id_to_delete + "} to Tracked Threads")
 		threads_list.remove(thread_id_to_delete)
