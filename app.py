@@ -30,18 +30,19 @@ def get_thread():
 	threadId = quip_gateway.get_thread(suffix)
 	return render_template('get_thread.html', threadId=threadId)
 
-def fetch_item_updates(thread_id):
+def fetch_item_updates(thread_ids):
 	current_time = datetime.datetime.now(est_timezone)
 	print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 	print("Beginning new log entry: " + current_time.strftime("%Y-%m-%d %H:%M:%S"))
 
-	# First, fetch all Reminders from the Document
-	html = quip_gateway.get_document_html(thread_id)
-	page = BeautifulSoup(html, features="html.parser")
-	reminders = page.findAll('li')
+	for thread_id in thread_ids:
+		# First, fetch all Reminders from the Document
+		html = quip_gateway.get_document_html(thread_id)
+		page = BeautifulSoup(html, features="html.parser")
+		reminders = page.findAll('li')
 
-	for reminder in reminders:
-		process_reminder(reminder, thread_id, current_time)
+		for reminder in reminders:
+			process_reminder(reminder, thread_id, current_time)
 
 def process_reminder(reminder, thread_id, current_time):
 	# Determine if it is 'checked', if so, ignore it.
@@ -69,10 +70,13 @@ def process_reminder(reminder, thread_id, current_time):
 			quip_gateway.new_message(thread_id, text)
 
 # Set up the scheduler 
+threads_list = aws_gateway.fetch_threads_list()
+print("Found list of threads to track: " + str(threads_list))
+
 if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
 	scheduler = BackgroundScheduler(timezone="EST") # TODO: Don't do this for the timezone
 	scheduler.add_job(func=fetch_item_updates, 
-		args=["fFeAAABnQCd"], # TODO: Put this somewhere else
+		args=[threads_list],
 		trigger="interval", 
 		seconds=int(os.environ.get("QUIPTIME_HEARTBEAT_INTERVAL", "60")))
 	scheduler.start()
