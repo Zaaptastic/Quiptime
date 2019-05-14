@@ -2,7 +2,7 @@
 
 <form method="POST"> 
 
-<textarea name="password">Enter Password...</textarea>
+<textarea name="password" onClick="this.setSelectionRange(0, this.value.length)">Enter Password...</textarea>
 
 <ul>
 {% for thread in threads_list %}
@@ -15,8 +15,7 @@
 
 <br><br>
 
-  <textarea name="thread_id_to_add">Add a Thread instead...</textarea>
+  <textarea name="thread_id_to_add" onClick="this.setSelectionRange(0, this.value.length)">Add a Thread instead...</textarea>
   <button type="submit" name="submit" value="get_threads_add">Add</button>
-
 
 </form>
