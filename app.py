@@ -17,6 +17,7 @@ import os
 import aws_gateway
 
 app = Flask(__name__)
+app.run(use_reloader=False)
 
 est_timezone = tz.gettz('US/Eastern')
 tzinfos = {"EST": tz.gettz('US/Eastern')}
