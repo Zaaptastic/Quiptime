@@ -121,7 +121,7 @@ def process_reminder(reminder, thread_id, current_time):
 threads_list = aws_gateway.fetch_threads_list()
 print("Found list of threads to track: " + str(threads_list))
 
-if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
 	scheduler = BackgroundScheduler(timezone="EST") # TODO: Don't do this for the timezone
 	scheduler.add_job(func=fetch_item_updates, 
 		args=[threads_list],
