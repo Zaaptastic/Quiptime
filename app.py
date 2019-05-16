@@ -18,11 +18,14 @@ import aws_gateway
 
 app = Flask(__name__)
 
+# Timezone information. One day this won't be hardcoded to EST.
 est_timezone = tz.gettz('US/Eastern')
 tzinfos = {"EST": tz.gettz('US/Eastern')}
+# Password used to add/remove threads via the web interface. One day this will be real authentication
 add_thread_password = os.environ.get("ADD_THREAD_PASSWORD")
-scheduler = BackgroundScheduler(timezone="EST") # TODO: Don't do this for the timezone
-# Set up the scheduler 
+# Task schedule for recurring jobs
+scheduler = BackgroundScheduler(timezone="EST")
+# List of threads that will be actively scanned for reminders
 threads_list = aws_gateway.fetch_threads_list()
 print("Found list of threads to track: " + str(threads_list))
 
@@ -59,6 +62,27 @@ def get_threads_edit():
 	else:
 		return delete_thread(thread_id_to_delete, submitted_password)
 
+@scheduler.scheduled_job('interval', seconds=int(os.environ.get("QUIPTIME_HEARTBEAT_INTERVAL", "60")))
+def fetch_item_updates():
+	current_time = datetime.datetime.now(est_timezone)
+	print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+	print("Beginning new log entry: " + current_time.strftime("%Y-%m-%d %H:%M:%S"))
+
+	for thread_id in threads_list:
+		# First, fetch all Reminders from the Document
+		html = quip_gateway.get_document_html(thread_id)
+		page = BeautifulSoup(html, features="html.parser")
+		reminders = page.findAll('li')
+
+		for reminder in reminders:
+			process_reminder(reminder, thread_id, current_time)
+
+# This initializes the Scheduler with jobs defined in the functions above.			
+scheduler.start()
+
+# Shut down the scheduler when exiting the app
+atexit.register(lambda: scheduler.shutdown())
+
 def add_thread(thread_id_to_add, submitted_password):
 	threads_list.append(thread_id_to_add)
 	aws_gateway.upload_threads_list(threads_list)
@@ -81,21 +105,6 @@ def delete_thread(thread_id_to_delete, submitted_password):
 	else:
 		print("Authentication Failed while deleting thread_id={" + thread_id_to_delete + "} to Tracked Threads")
 		return render_template('get_threads.html', threads_list=threads_list)
-
-@scheduler.scheduled_job('interval', seconds=int(os.environ.get("QUIPTIME_HEARTBEAT_INTERVAL", "60")))
-def fetch_item_updates():
-	current_time = datetime.datetime.now(est_timezone)
-	print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-	print("Beginning new log entry: " + current_time.strftime("%Y-%m-%d %H:%M:%S"))
-
-	for thread_id in threads_list:
-		# First, fetch all Reminders from the Document
-		html = quip_gateway.get_document_html(thread_id)
-		page = BeautifulSoup(html, features="html.parser")
-		reminders = page.findAll('li')
-
-		for reminder in reminders:
-			process_reminder(reminder, thread_id, current_time)
 
 def process_reminder(reminder, thread_id, current_time):
 	# Determine if it is 'checked', if so, ignore it.
@@ -121,8 +130,3 @@ def process_reminder(reminder, thread_id, current_time):
 			# TODO: Find a way to cap retries
 			quip_gateway.toggle_checkmark(thread_id, reminder_id, reminder)
 			quip_gateway.new_message(thread_id, text)
-
-scheduler.start()
-
-# Shut down the scheduler when exiting the app
-atexit.register(lambda: scheduler.shutdown())
