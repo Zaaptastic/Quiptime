@@ -21,6 +21,10 @@ app = Flask(__name__)
 est_timezone = tz.gettz('US/Eastern')
 tzinfos = {"EST": tz.gettz('US/Eastern')}
 add_thread_password = os.environ.get("ADD_THREAD_PASSWORD")
+scheduler = BackgroundScheduler(timezone="EST") # TODO: Don't do this for the timezone
+# Set up the scheduler 
+threads_list = aws_gateway.fetch_threads_list()
+print("Found list of threads to track: " + str(threads_list))
 
 @app.route('/')
 def ping():
@@ -78,12 +82,13 @@ def delete_thread(thread_id_to_delete, submitted_password):
 		print("Authentication Failed while deleting thread_id={" + thread_id_to_delete + "} to Tracked Threads")
 		return render_template('get_threads.html', threads_list=threads_list)
 
-def fetch_item_updates(thread_ids):
+@scheduler.scheduled_job('interval', seconds=int(os.environ.get("QUIPTIME_HEARTBEAT_INTERVAL", "60")))
+def fetch_item_updates():
 	current_time = datetime.datetime.now(est_timezone)
 	print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 	print("Beginning new log entry: " + current_time.strftime("%Y-%m-%d %H:%M:%S"))
 
-	for thread_id in thread_ids:
+	for thread_id in threads_list:
 		# First, fetch all Reminders from the Document
 		html = quip_gateway.get_document_html(thread_id)
 		page = BeautifulSoup(html, features="html.parser")
@@ -103,7 +108,7 @@ def process_reminder(reminder, thread_id, current_time):
 	# Locate the text in the Reminder describing the time in which it should be triggered.
 	text = reminder.text
 	time = parser.parse(text.split('@')[1] + " EST", tzinfos = tzinfos)
-	print(time)
+	
 	if (time > current_time):
 		print("Not yet time to trigger: {reminder_id=" + reminder_id + ", time=" + time.strftime("%Y-%m-%d %H:%M:%S") + "}")
 	else:
@@ -117,16 +122,6 @@ def process_reminder(reminder, thread_id, current_time):
 			quip_gateway.toggle_checkmark(thread_id, reminder_id, reminder)
 			quip_gateway.new_message(thread_id, text)
 
-# Set up the scheduler 
-threads_list = aws_gateway.fetch_threads_list()
-print("Found list of threads to track: " + str(threads_list))
-
-scheduler = BackgroundScheduler(timezone="EST") # TODO: Don't do this for the timezone
-
-@scheduler.scheduled_job('interval', seconds=int(os.environ.get("QUIPTIME_HEARTBEAT_INTERVAL", "60")))
-def check_reminders():
-	fetch_item_updates(threads_list)
-	
 scheduler.start()
 
 # Shut down the scheduler when exiting the app
