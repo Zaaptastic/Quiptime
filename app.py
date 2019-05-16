@@ -23,6 +23,8 @@ est_timezone = tz.gettz('US/Eastern')
 tzinfos = {"EST": tz.gettz('US/Eastern')}
 # Password used to add/remove threads via the web interface. One day this will be real authentication
 add_thread_password = os.environ.get("ADD_THREAD_PASSWORD")
+# Frequency at which to trigger each cycle of checking reminders
+heartbeat_interval = int(os.environ.get("QUIPTIME_HEARTBEAT_INTERVAL", "60"))
 # Task schedule for recurring jobs
 scheduler = BackgroundScheduler(timezone="EST")
 # List of threads that will be actively scanned for reminders
@@ -62,7 +64,7 @@ def get_threads_edit():
 	else:
 		return delete_thread(thread_id_to_delete, submitted_password)
 
-@scheduler.scheduled_job('interval', seconds=int(os.environ.get("QUIPTIME_HEARTBEAT_INTERVAL", "60")))
+@scheduler.scheduled_job('interval', seconds=heartbeat_interval)
 def fetch_item_updates():
 	current_time = datetime.datetime.now(est_timezone)
 	print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -76,6 +78,14 @@ def fetch_item_updates():
 
 		for reminder in reminders:
 			process_reminder(reminder, thread_id, current_time)
+
+@scheduler.scheduled_job('interval', seconds=(heartbeat_interval*60))
+def reload_threads_list():
+	current_time = datetime.datetime.now(est_timezone)
+	print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+	print("Reloading threads_list: " + current_time.strftime("%Y-%m-%d %H:%M:%S"))
+
+	threads_list = aws_gateway.fetch_threads_list()
 
 # This initializes the Scheduler with jobs defined in the functions above.			
 scheduler.start()
