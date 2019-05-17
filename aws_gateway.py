@@ -21,7 +21,8 @@ threads_list_keyname = "thread_id_list_" + quiptime_endpoint + ".txt"
 def publish_message_to_sns(message):
 	response = sns.publish(
 		TopicArn='arn:aws:sns:us-east-1:295716045588:QuiptimeTopic', 
-		Message=message)
+		Message=message,
+		Subject="Reminder")
 	
 	return response
 
