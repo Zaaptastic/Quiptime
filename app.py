@@ -66,6 +66,12 @@ def get_threads_edit():
 	else:
 		return delete_thread(thread_id_to_delete, submitted_password)
 
+@app.route('/clear_cache')
+def clear_cache():
+	reload_threads_list()
+	reload_reminders_list()
+	return "Cache fully cleared and repopulated"
+
 def fetch_reminders_list():
 	reminders_to_return = {}
 
