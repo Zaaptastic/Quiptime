@@ -14,6 +14,7 @@ import quip_gateway
 import quip
 import datetime
 import os
+import copy
 import aws_gateway
 
 app = Flask(__name__)
@@ -83,7 +84,6 @@ def fetch_reminders_list():
 
 		for reminder in reminders:
 			reminders_to_return[reminder] = thread_id
-			# process_reminder(reminder, thread_id, current_time)
 
 	print("Found reminders: " + str(reminders_to_return))
 
@@ -115,7 +115,10 @@ def check_all_reminders():
 
 	global reminders_list
 	for reminder in reminders_list:
-		process_reminder(reminder, reminders_list[reminder], current_time)
+		unchecked_reminder = copy.deepcopy(reminder)
+		successful_publish = process_reminder(reminder, reminders_list[reminder], current_time)
+		if successful_publish:
+			reminders_list.pop(unchecked_reminder)
 
 # This initializes the Scheduler with jobs defined in the functions above.		
 reload_reminders_list()	
@@ -162,6 +165,7 @@ def process_reminder(reminder, thread_id, current_time):
 	
 	if (time > current_time):
 		print("Not yet time to trigger: {reminder_id=" + reminder_id + ", time=" + time.strftime("%Y-%m-%d %H:%M:%S") + "}")
+		return False
 	else:
 		print("Time (or past time) to trigger: {reminder_id=" + reminder_id + ", time=" + time.strftime("%Y-%m-%d %H:%M:%S") + "}")
 		
@@ -172,3 +176,5 @@ def process_reminder(reminder, thread_id, current_time):
 			# TODO: Find a way to cap retries
 			quip_gateway.toggle_checkmark(thread_id, reminder_id, reminder)
 			quip_gateway.new_message(thread_id, text)
+			return True
+		return False
