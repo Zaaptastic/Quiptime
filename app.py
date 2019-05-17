@@ -14,7 +14,6 @@ import quip_gateway
 import quip
 import datetime
 import os
-import copy
 import aws_gateway
 
 app = Flask(__name__)
@@ -31,8 +30,6 @@ scheduler = BackgroundScheduler(timezone="EST")
 # List of threads that will be actively scanned for reminders
 threads_list = aws_gateway.fetch_threads_list()
 print("Found list of threads to track: " + str(threads_list))
-# List of reminders that will be notified on. Technically a dictionary to keep track of associated thread_ids
-reminders_list = {}
 
 @app.route('/')
 def ping():
@@ -67,14 +64,11 @@ def get_threads_edit():
 	else:
 		return delete_thread(thread_id_to_delete, submitted_password)
 
-@app.route('/clear_cache')
-def clear_cache():
-	reload_threads_list()
-	reload_reminders_list()
-	return "Cache fully cleared and repopulated"
-
-def fetch_reminders_list():
-	reminders_to_return = {}
+@scheduler.scheduled_job('interval', seconds=heartbeat_interval)
+def fetch_item_updates():
+	current_time = datetime.datetime.now(est_timezone)
+	print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+	print("Beginning new log entry: " + current_time.strftime("%Y-%m-%d %H:%M:%S"))
 
 	for thread_id in threads_list:
 		# First, fetch all Reminders from the Document
@@ -83,20 +77,7 @@ def fetch_reminders_list():
 		reminders = page.findAll('li')
 
 		for reminder in reminders:
-			reminders_to_return[reminder] = thread_id
-
-	print("Found reminders: " + str(reminders_to_return))
-
-	return reminders_to_return
-
-@scheduler.scheduled_job('interval', seconds=heartbeat_interval*5)
-def reload_reminders_list():
-	current_time = datetime.datetime.now(est_timezone)
-	print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-	print("Reloading reminders_list: " + current_time.strftime("%Y-%m-%d %H:%M:%S"))
-
-	global reminders_list
-	reminders_list = fetch_reminders_list()
+			process_reminder(reminder, thread_id, current_time)
 
 @scheduler.scheduled_job('interval', seconds=(heartbeat_interval*60))
 def reload_threads_list():
@@ -104,26 +85,10 @@ def reload_threads_list():
 	print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 	print("Reloading threads_list: " + current_time.strftime("%Y-%m-%d %H:%M:%S"))
 
-	global threads_list
 	threads_list = aws_gateway.fetch_threads_list()
 
-@scheduler.scheduled_job('interval', seconds=heartbeat_interval*1)
-def check_all_reminders():
-	current_time = datetime.datetime.now(est_timezone)
-	print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-	print("Checking all reminders: " + current_time.strftime("%Y-%m-%d %H:%M:%S"))
-
-	global reminders_list
-	for reminder in reminders_list:
-		unchecked_reminder = copy.deepcopy(reminder)
-		successful_publish = process_reminder(reminder, reminders_list[reminder], current_time)
-		if successful_publish:
-			reminders_list.pop(unchecked_reminder)
-
-# This initializes the Scheduler with jobs defined in the functions above.		
-reload_reminders_list()	
+# This initializes the Scheduler with jobs defined in the functions above.			
 scheduler.start()
-print("Application initialized!")
 
 # Shut down the scheduler when exiting the app
 atexit.register(lambda: scheduler.shutdown())
@@ -165,7 +130,6 @@ def process_reminder(reminder, thread_id, current_time):
 	
 	if (time > current_time):
 		print("Not yet time to trigger: {reminder_id=" + reminder_id + ", time=" + time.strftime("%Y-%m-%d %H:%M:%S") + "}")
-		return False
 	else:
 		print("Time (or past time) to trigger: {reminder_id=" + reminder_id + ", time=" + time.strftime("%Y-%m-%d %H:%M:%S") + "}")
 		
@@ -176,5 +140,3 @@ def process_reminder(reminder, thread_id, current_time):
 			# TODO: Find a way to cap retries
 			quip_gateway.toggle_checkmark(thread_id, reminder_id, reminder)
 			quip_gateway.new_message(thread_id, text)
-			return True
-		return False
