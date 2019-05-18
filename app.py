@@ -124,19 +124,43 @@ def process_reminder(reminder, thread_id, current_time):
 		print("Skipping completed (checked) ReminderId{" + reminder_id + "}")
 		return
 
-	# Locate the text in the Reminder describing the time in which it should be triggered.
-	text = reminder.text
-	time = parser.parse(text.split('@')[1] + " EST", tzinfos = tzinfos)
+	# Extract text from Reminder to figure out if the Reminder was Processed already
+	full_text = reminder.text
+	text = full_text.split('@')[0].strip()
 	
-	if (time > current_time):
-		print("Not yet time to trigger: {reminder_id=" + reminder_id + ", time=" + time.strftime("%Y-%m-%d %H:%M:%S") + "}")
-	else:
-		print("Time (or past time) to trigger: {reminder_id=" + reminder_id + ", time=" + time.strftime("%Y-%m-%d %H:%M:%S") + "}")
-		
-		sns_response = aws_gateway.publish_message_to_sns(text)
+	if "[Processed]" in text:
+		time = parser.parse(full_text.split('@')[1]
+			.split('{')[1]
+			.split('}')[0].strip(), tzinfos = tzinfos)
 
-		# If the SNS message was unsuccessful, we want to retry, so we can't check off the checkbox
-		if (sns_response['ResponseMetadata']['HTTPStatusCode'] == 200):
-			# TODO: Find a way to cap retries
-			quip_gateway.toggle_checkmark(thread_id, reminder_id, reminder)
-			quip_gateway.new_message(thread_id, text)
+		if (time > current_time):
+			print("Not yet time to trigger: {reminder_id=" + reminder_id + ", time=" + str(time) + "}")
+		else:
+			prepare_message_for_sns(time, reminder_id, text, thread_id, reminder)
+	else:
+		print("Unprocessed Reminder found, processing...")
+		string_time = full_text.split('@')[1].strip()
+		time = parser.parse(string_time + " EST", tzinfos = tzinfos)
+		full_text = text + ' [Processed] @ ' + string_time + " {" + str(time) + "}"
+		reminder.string = full_text
+
+		if (time > current_time):
+			print("Not yet time to trigger: {reminder_id=" + reminder_id + ", time=" + str(time) + "}")
+			quip_gateway.replace_document_section(thread_id, reminder_id, reminder)
+		else:
+			prepare_message_for_sns(time, reminder_id, text, thread_id, reminder)
+		
+def prepare_message_for_sns(time, reminder_id, text, thread_id, reminder):
+	print("Time (or past time) to trigger: {reminder_id=" + reminder_id + ", time=" + str(time) + "}")
+	
+	# Arrange the message
+	message = text.split('[Processed]')[0]
+	message = message + "\n\n" + str(time)
+
+	sns_response = aws_gateway.publish_message_to_sns(message)
+
+	# If the SNS message was unsuccessful, we want to retry, so we can't check off the checkbox
+	if (sns_response['ResponseMetadata']['HTTPStatusCode'] == 200):
+		# TODO: Find a way to cap retries
+		quip_gateway.toggle_checkmark(thread_id, reminder_id, reminder)
+		quip_gateway.new_message(thread_id, text)
